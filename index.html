@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AI Resume Search (White Theme + Skill Dashboard)</title>
+<title>AI Resume Search (White Theme + Skill Dashboard Right)</title>
 
 <!-- TFJS -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
@@ -61,7 +61,8 @@
     white-space:nowrap;
   }
 
-  .results{ margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  /* card styles */
+  .results{ margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   @media(max-width:800px){ .results{ grid-template-columns:1fr; } }
 
   .card{
@@ -78,14 +79,42 @@
     background:#fff2a8; padding:0 3px; border-radius:3px;
   }
 
-  /* Dashboard container */
-  #skillDashboardBox{
-    margin-top:24px;
-    background:#fafafa;
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:16px;
-    box-shadow:var(--shadow);
+  /* RIGHT SIDE DASHBOARD */
+  .results-and-dashboard {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    margin-top: 10px;
+  }
+
+  .results-area {
+    flex: 3;
+  }
+
+  .dashboard-area {
+    flex: 1;
+    max-width: 280px;
+    margin-left: 20px;
+  }
+
+  #skillDashboardBox {
+    background: #fafafa;
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    width: 100%;
+  }
+
+  @media (max-width: 900px) {
+    .results-and-dashboard {
+      flex-direction: column;
+    }
+    .dashboard-area {
+      max-width: 100%;
+      margin-left: 0;
+      margin-top: 20px;
+    }
   }
 </style>
 </head>
@@ -98,7 +127,7 @@
   <p>Semantic + keyword boosting. Bench Skill Dashboard included.</p>
 
   <div style="display:grid; grid-template-columns:1fr auto; gap:10px;">
-    <input id="searchBox" placeholder="Try: C++ embedded linux, Java microservices..." disabled/>
+    <input id="searchBox" placeholder="Try: C++ embedded linux, Python ML..." disabled/>
     <button id="clearBtn">Clear</button>
   </div>
 
@@ -110,16 +139,30 @@
   </div>
 </header>
 
-<!-- Skill Dashboard -->
-<div id="skillDashboardBox">
-  <h3>Bench Skill Dashboard</h3>
-  <p style="color:var(--muted); margin-top:-6px;">Shows how frequently key skills appear in the current result set.</p>
-  <canvas id="skillChart" height="160"></canvas>
-</div>
-
+<!-- MAIN LAYOUT: RESULTS LEFT, DASHBOARD RIGHT -->
 <main>
-  <h3>Results</h3>
-  <div id="results" class="results"></div>
+
+  <div class="results-and-dashboard">
+
+    <!-- LEFT SIDE: RESULTS -->
+    <div class="results-area">
+      <h3 style="margin-bottom:8px;">Results</h3>
+      <div id="results" class="results"></div>
+    </div>
+
+    <!-- RIGHT SIDE: DASHBOARD -->
+    <div class="dashboard-area">
+      <div id="skillDashboardBox">
+        <h4>Bench Skill Dashboard</h4>
+        <p style="color:var(--muted); margin-top:-6px;">
+          Frequency of skills in current results.
+        </p>
+        <canvas id="skillChart" height="180"></canvas>
+      </div>
+    </div>
+
+  </div>
+
 </main>
 
 </div>
@@ -129,22 +172,33 @@ let model=null;
 let resumeEmbeddings=null;
 let resumeDB=[];
 
+/* ---------- RESUME DATA WITH DEMO AVAILABILITY ---------- */
 const seedResumes=[
-  {name:"Arjun Mehta",
-   resumeText:`Senior C++ and Embedded Engineer. Skills: C++, Embedded Linux, RTOS, CAN Bus.`,
-   availability:"TBD"},
-  {name:"Sophia Rodriguez",
-   resumeText:`Java Backend Developer. Skills: Java, Spring Boot, Microservices, Docker.`,
-   availability:"TBD"},
-  {name:"Ethan Williams",
-   resumeText:`Telecom Engineer. Skills: 5G, LTE, RF Systems, Protocol Stack.`,
-   availability:"TBD"},
-  {name:"Mira Patel",
-   resumeText:`Embedded Firmware Engineer. Skills: C, C++, FreeRTOS, BLE, STM32.`,
-   availability:"TBD"},
-  {name:"Daniel Chen",
-   resumeText:`Python Developer. Skills: Python, TensorFlow, Cloud, APIs.`,
-   availability:"TBD"}
+  {
+    name:"Arjun Mehta",
+    resumeText:`Senior C++ & Embedded Engineer. Skills: C++, Embedded Linux, RTOS, CAN Bus.`,
+    availability:"Available 40 hrs/week from Feb 10"
+  },
+  {
+    name:"Sophia Rodriguez",
+    resumeText:`Java Backend Developer. Skills: Java, Spring Boot, Microservices, Docker.`,
+    availability:"Available 20 hrs/week from Feb 15"
+  },
+  {
+    name:"Ethan Williams",
+    resumeText:`Telecom Engineer. Skills: 5G, LTE, RF Systems, Protocol Stack.`,
+    availability:"Available 30 hrs/week from Mar 1"
+  },
+  {
+    name:"Mira Patel",
+    resumeText:`Embedded Firmware Engineer. Skills: C, C++, FreeRTOS, BLE, STM32.`,
+    availability:"Available 10 hrs/week now"
+  },
+  {
+    name:"Daniel Chen",
+    resumeText:`Python Developer. Skills: Python, TensorFlow, Cloud, APIs.`,
+    availability:"Available 35 hrs/week from Feb 5"
+  }
 ];
 
 function loadResumes(){ return seedResumes; }
@@ -176,26 +230,21 @@ function highlightSnippet(text,query){
   return sn;
 }
 
-/* ------------ DASHBOARD CHART ------------ */
+/* ---------- SKILL DASHBOARD (RIGHT SIDE) ---------- */
 let skillChart=null;
 
 function buildSkillDashboard(results){
   let freq={};
 
   results.forEach(r=>{
-    const tokens=tokenize(r.resumeText);
-    tokens.forEach(t=>{
-      if(t.length>=3){
-        freq[t]=(freq[t]||0)+1;
-      }
+    tokenize(r.resumeText).forEach(t=>{
+      if(t.length>=3){ freq[t]=(freq[t]||0)+1; }
     });
   });
 
-  // Convert to sorted array
-  const labels=Object.keys(freq).slice(0,20);
+  const labels=Object.keys(freq).slice(0,15);
   const values=labels.map(l=>freq[l]);
 
-  // destroy old chart
   if(skillChart){ skillChart.destroy(); }
 
   const ctx=document.getElementById("skillChart").getContext("2d");
@@ -204,7 +253,6 @@ function buildSkillDashboard(results){
     data:{
       labels:labels,
       datasets:[{
-        label:"Skill frequency",
         data:values,
         backgroundColor:"#6aa6ff"
       }]
@@ -213,13 +261,12 @@ function buildSkillDashboard(results){
       responsive:true,
       plugins:{ legend:{display:false} },
       scales:{
-        x:{ticks:{color:"#333"}},
+        x:{ticks:{color:"#333", font:{size:10}}},
         y:{ticks:{color:"#333"}}
       }
     }
   });
 }
-/* ---------------------------------------- */
 
 async function embedQuery(q){
   const t=await model.embed([q]);
@@ -240,7 +287,9 @@ function renderCards(list,query){
         <h3>${c.name}</h3>
         <div class="badge">${(c.score*100).toFixed(1)}%</div>
       </div>
+
       <div>${highlightSnippet(c.resumeText,query)}</div>
+
       <p style="font-size:13px; margin-top:6px;">
         <strong>Availability:</strong> ${c.availability}<br>
         Semantic: ${(c.sem*100).toFixed(1)}% • Skill-hit: ${(c.kw*100).toFixed(1)}%
@@ -268,7 +317,7 @@ async function searchAndRender(q){
   }).sort((a,b)=>b.score-a.score);
 
   renderCards(out,q);
-  buildSkillDashboard(out);   // NEW — update dashboard
+  buildSkillDashboard(out);
 }
 
 async function init(){
@@ -289,7 +338,7 @@ async function init(){
   s.addEventListener("input",()=>searchAndRender(s.value));
   c.addEventListener("click",()=>{
     s.value=""; document.getElementById("results").innerHTML="";
-    buildSkillDashboard([]); // empty dashboard
+    buildSkillDashboard([]); 
   });
 
   document.querySelectorAll(".pill").forEach(p=>{
@@ -299,12 +348,12 @@ async function init(){
     });
   });
 
-  // initial search
   s.value="C++ embedded linux";
   searchAndRender(s.value);
 }
 
 init();
 </script>
+
 </body>
 </html>
