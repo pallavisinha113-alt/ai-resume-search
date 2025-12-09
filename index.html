@@ -3,35 +3,42 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>AI Resume Search (White Theme + Availability)</title>
+<meta name="theme-color" content="#0b1220" />
+<title>AI Resume Search (Mobile-Friendly Prototype)</title>
 
 <!-- TFJS -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
-<!-- USE -->
+<!-- USE (explicit dist build tends to be more reliable) -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder@1.3.3/dist/universal-sentence-encoder.min.js"></script>
 
 <style>
   :root{
-    --bg: #ffffff;
-    --panel: #f4f4f4;
-    --panel2: #ececec;
-    --border: #d0d0d0;
-    --text: #222;
-    --muted: #555;
-    --chip: #f2f2f2;
-    --chipBorder: #ccc;
-    --card: #ffffff;
-    --shadow: 0 4px 12px rgba(0,0,0,0.08);
-    --radius: 14px;
+    --bg: #0b1220;
+    --panel: rgba(255,255,255,0.08);
+    --panel2: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.14);
+    --text: #e9eefc;
+    --muted: rgba(233,238,252,0.7);
+    --chip: rgba(255,255,255,0.10);
+    --chipBorder: rgba(255,255,255,0.18);
+    --card: rgba(255,255,255,0.07);
+    --shadow: 0 14px 40px rgba(0,0,0,0.35);
+    --radius: 16px;
   }
 
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     margin: 0;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: var(--bg);
+    background: radial-gradient(1200px 700px at 10% 0%, rgba(116, 143, 255, 0.35), transparent 55%),
+                radial-gradient(900px 600px at 95% 15%, rgba(74, 222, 128, 0.22), transparent 60%),
+                var(--bg);
     color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     padding: 14px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
   }
 
   .app {
@@ -43,61 +50,106 @@
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 14px;
+    padding: 14px 14px 12px;
     box-shadow: var(--shadow);
     position: sticky;
     top: 10px;
     z-index: 10;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
-  h1 { margin: 2px 0 6px; font-size: 20px; }
+  h1 {
+    margin: 2px 0 6px;
+    font-size: 18px;
+    letter-spacing: 0.2px;
+  }
   .sub {
     margin: 0 0 12px;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 12.5px;
+    line-height: 1.35;
   }
 
   .bar {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 10px;
+    align-items: center;
   }
 
   input[type="text"]{
     width: 100%;
     padding: 13px 12px;
-    font-size: 16px;
+    font-size: 16px; /* keep >=16px to prevent iOS zoom */
     border-radius: 14px;
     border: 1px solid var(--border);
-    background: #ffffff;
+    background: rgba(0,0,0,0.22);
     color: var(--text);
+    outline: none;
   }
+  input[type="text"]::placeholder { color: rgba(233,238,252,0.55); }
 
   button{
     border: 1px solid var(--border);
-    background: #fafafa;
-    color: #222;
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
     border-radius: 14px;
     padding: 12px 12px;
     font-size: 14px;
     cursor: pointer;
+    touch-action: manipulation;
   }
+  button:active { transform: translateY(1px); }
+
+  .statusRow{
+    margin-top: 10px;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+  }
+  .status{
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .dot {
+    width: 9px; height: 9px; border-radius: 99px;
+    background: rgba(255,255,255,0.35);
+  }
+  .dot.ok { background: rgba(74, 222, 128, 0.9); }
+  .dot.warn { background: rgba(251, 191, 36, 0.9); }
 
   .chips {
     margin-top: 12px;
     display: flex;
     gap: 8px;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     padding-bottom: 4px;
+    scroll-snap-type: x mandatory;
   }
+  .chips::-webkit-scrollbar { height: 6px; }
+  .chips::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 99px; }
 
   .pill {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
     border: 1px solid var(--chipBorder);
     background: var(--chip);
     padding: 9px 10px;
     border-radius: 999px;
     font-size: 13px;
     white-space: nowrap;
+  }
+
+  main {
+    margin-top: 14px;
+  }
+
+  .sectionTitle{
+    margin: 8px 4px 10px;
+    font-size: 14px;
+    color: rgba(233,238,252,0.92);
   }
 
   .results {
@@ -111,49 +163,70 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 14px;
-    box-shadow: var(--shadow);
+    box-shadow: 0 14px 36px rgba(0,0,0,0.22);
   }
 
   .cardTop {
     display: grid;
     grid-template-columns: 1fr auto;
+    gap: 10px;
     align-items: start;
     margin-bottom: 8px;
   }
 
-  .name { margin: 0; font-size: 16px; }
+  .name {
+    margin: 0;
+    font-size: 16px;
+  }
 
   .badge {
     font-weight: 650;
     font-size: 12.5px;
-    border: 1px solid #bcdcff;
-    background: #e9f4ff;
+    border: 1px solid rgba(125, 211, 252, 0.35);
+    background: rgba(125, 211, 252, 0.12);
     padding: 6px 10px;
     border-radius: 999px;
-    min-width: 92px;
     text-align: center;
+    min-width: 92px;
   }
 
   .snippet {
-    font-size: 14px;
-    color: #444;
+    font-size: 13.5px;
     line-height: 1.45;
+    color: rgba(233,238,252,0.88);
   }
 
   .meta {
     margin-top: 10px;
-    font-size: 12.5px;
-    color: #555;
+    font-size: 12px;
+    color: rgba(233,238,252,0.65);
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
   mark {
-    background: #fff3b0;
-    border-radius: 4px;
+    background: rgba(250, 204, 21, 0.35);
+    border: 1px solid rgba(250, 204, 21, 0.35);
+    color: var(--text);
     padding: 0 3px;
+    border-radius: 5px;
   }
 
+  .hint {
+    margin: 12px 4px 0;
+    color: rgba(233,238,252,0.65);
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+
+  /* Larger screens: two-column grid for “enterprise feel” */
   @media (min-width: 800px){
+    header { padding: 16px 18px 14px; }
+    h1 { font-size: 20px; }
+    .sub { font-size: 13px; }
     .results { grid-template-columns: 1fr 1fr; }
+    .badge { min-width: 110px; }
   }
 </style>
 </head>
@@ -162,14 +235,22 @@
 <div class="app">
   <header>
     <h1>AI Resume Search</h1>
-    <p class="sub">Semantic search + keyword boosting. No backend; all client-side.</p>
+    <p class="sub">
+      Mobile-friendly semantic matching (USE embeddings) + skill keyword boost (so “C++” works reliably).
+      No backend — data lives in LocalStorage for the prototype.
+    </p>
 
     <div class="bar">
-      <input id="searchBox" type="text" placeholder="Try: C++ embedded linux, Java microservices..." disabled />
-      <button id="clearBtn">Clear</button>
+      <input id="searchBox" type="text" placeholder="Try: C++ embedded linux, Java microservices, 5G telecom..." disabled />
+      <button id="clearBtn" aria-label="Clear search">Clear</button>
     </div>
 
-    <div class="chips">
+    <div class="statusRow" aria-live="polite">
+      <div id="dot" class="dot"></div>
+      <div id="status" class="status">Loading AI model…</div>
+    </div>
+
+    <div class="chips" aria-label="Quick searches">
       <button class="pill" data-q="C++ embedded linux RTOS">C++ embedded linux RTOS</button>
       <button class="pill" data-q="Java spring boot microservices">Java microservices</button>
       <button class="pill" data-q="5G LTE telecom RF">5G telecom</button>
@@ -178,8 +259,12 @@
   </header>
 
   <main>
-    <h3 style="margin: 16px 4px;">Results</h3>
+    <div class="sectionTitle">Results</div>
     <div id="results" class="results"></div>
+    <div class="hint">
+      Tip: On phones, semantic models may take a few seconds to load the first time. After that, searching is fast.
+      If the model can’t load in this sandbox, the app will still work with keyword ranking.
+    </div>
   </main>
 </div>
 
@@ -188,189 +273,271 @@ let model = null;
 let resumeDB = [];
 let resumeEmbeddings = null;
 
-// --------------------------------
-// Resume DB + placeholder availability
-// --------------------------------
+// ----------------------
+// Sample Resume Database
+// ----------------------
 const seedResumes = [
   {
     name: "Arjun Mehta",
     resumeText: `
       Senior C++ and Embedded Engineer, 8 years experience.
-      Skills: C++, Embedded Linux, RTOS, CAN Bus, Automotive ECUs.
-    `,
-    availability: "TBD"
+      Skills: C++, Embedded Linux, RTOS, CAN Bus, Automotive ECUs,
+      ARM Microcontrollers, Telecommunication Protocols, Linux Kernel modules.
+    `
   },
   {
     name: "Sophia Rodriguez",
     resumeText: `
       Java Backend Developer, 6 years experience.
-      Skills: Java, Spring Boot, APIs, Microservices, Docker.
-    `,
-    availability: "TBD"
+      Skills: Java, Spring Boot, APIs, Microservices, Docker, Cloud,
+      Kubernetes, SQL, Kafka.
+    `
   },
   {
     name: "Ethan Williams",
     resumeText: `
       Telecom Engineer specialized in 5G and LTE.
-      Skills: RF Systems, 5G NR, LTE, Protocol Stack.
-    `,
-    availability: "TBD"
+      Skills: Telecommunication, RF Systems, 5G NR, LTE,
+      Protocol Stack, Wireless Optimization.
+    `
   },
   {
     name: "Mira Patel",
     resumeText: `
       Embedded Firmware Engineer with IoT background.
-      Skills: C, C++, FreeRTOS, BLE, STM32.
-    `,
-    availability: "TBD"
+      Skills: C, C++, FreeRTOS, BLE, MQTT, STM32, PCB debugging.
+    `
   },
   {
     name: "Daniel Chen",
     resumeText: `
       Python Developer & ML Engineer.
-      Skills: Python, TensorFlow, APIs, Cloud.
-    `,
-    availability: "TBD"
+      Skills: Python, TensorFlow, React, APIs, Data Engineering,
+      MLOps, Cloud deployment.
+    `
   }
 ];
 
+function setStatus(msg, kind = "loading") {
+  const statusEl = document.getElementById("status");
+  const dot = document.getElementById("dot");
+  statusEl.textContent = msg;
+  dot.className = "dot";
+  if (kind === "ok") dot.classList.add("ok");
+  if (kind === "warn") dot.classList.add("warn");
+}
+
 function loadResumes() {
+  const saved = localStorage.getItem("resumeDB_v1");
+  if (saved) return JSON.parse(saved);
+  localStorage.setItem("resumeDB_v1", JSON.stringify(seedResumes));
   return seedResumes;
 }
 
+function normalizeQuery(q) {
+  return q
+    .replace(/\bc\+\+\b/gi, "c++ cpp cplusplus c plus plus")
+    .replace(/\bc#\b/gi, "c# csharp c sharp")
+    .replace(/\.net/gi, ".net dotnet")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function tokenize(q) {
-  return q.toLowerCase().split(/\s+/).filter(Boolean);
+  return q
+    .toLowerCase()
+    .replace(/[^\w\+\#\. ]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
 }
 
-function cosineSimilarity(a, b) {
+function cosineSimilarity(vecA, vecB) {
   let dot = 0, normA = 0, normB = 0;
-  for (let i = 0; i < a.length; i++){
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
+  for (let i = 0; i < vecA.length; i++) {
+    dot += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
   }
-  return dot / (Math.sqrt(normA)*Math.sqrt(normB));
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom ? (dot / denom) : 0;
 }
 
-function keywordBoostScore(query, text){
-  const tokens = tokenize(query);
+function keywordBoostScore(query, text) {
+  const qTokens = tokenize(query);
   const hay = text.toLowerCase();
+  if (qTokens.length === 0) return 0;
+
   let hits = 0;
-  tokens.forEach(t => {
+  for (const t of qTokens) {
+    const isKey = (t === "c++" || t === "cpp" || t === "c#" || t === ".net" || t === "dotnet");
+    if (!isKey && t.length < 3) continue;
     if (hay.includes(t)) hits++;
-  });
-  return hits / tokens.length;
+  }
+  return hits / Math.max(1, qTokens.length);
 }
 
-function highlightSnippet(text, query){
-  const tokens = tokenize(query);
-  let snip = text.trim();
-  snip = snip.slice(0, 200)+"...";
-  tokens.forEach(t=>{
-    if(t.length<2) return;
-    const re = new RegExp(t, "ig");
-    snip = snip.replace(re, m=> `<mark>${m}</mark>`);
-  });
-  return snip;
+function highlightSnippet(text, query) {
+  const terms = Array.from(new Set(tokenize(query)))
+    .filter(t => t.length >= 3 || t === "c++" || t === "cpp" || t === "c#");
+
+  let out = text.trim().replace(/\s+/g, " ");
+  out = out.slice(0, 240) + (out.length > 240 ? "..." : "");
+
+  for (const t of terms) {
+    const safe = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(${safe})`, "ig");
+    out = out.replace(re, "<mark>$1</mark>");
+  }
+  return out;
 }
 
-async function embedQuery(q){
+function debounce(fn, ms) {
+  let id;
+  return (...args) => {
+    clearTimeout(id);
+    id = setTimeout(() => fn(...args), ms);
+  };
+}
+
+async function embedQuery(q) {
   const t = await model.embed([q]);
   const arr = await t.array();
   t.dispose();
   return arr[0];
 }
 
-function renderCards(list, query){
-  const results = document.getElementById("results");
-  results.innerHTML = "";
+function renderCards(scored, query) {
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = "";
 
-  list.forEach(c => {
+  scored.forEach(c => {
     const card = document.createElement("div");
     card.className = "card";
+
+    const scorePct = (c.score * 100).toFixed(2);
+    const semPct = (c.sem * 100).toFixed(1);
+    const kwPct = (c.kw * 100).toFixed(1);
 
     card.innerHTML = `
       <div class="cardTop">
         <h3 class="name">${c.name}</h3>
-        <div class="badge">${(c.score*100).toFixed(1)}%</div>
+        <div class="badge">${scorePct}%</div>
       </div>
-
       <div class="snippet">${highlightSnippet(c.resumeText, query)}</div>
-
-      <div class="meta">
-        <strong>Availability:</strong> ${c.availability}<br>
-        Semantic: ${(c.sem*100).toFixed(1)}% • Skill-hit: ${(c.kw*100).toFixed(1)}%
-      </div>
+      <div class="meta">Semantic: ${semPct}% • Skill-hit: ${kwPct}%</div>
     `;
-
-    results.appendChild(card);
+    resultsDiv.appendChild(card);
   });
 }
 
-async function searchAndRender(qRaw){
-  const q = qRaw.trim();
-  if(!q){
-    document.getElementById("results").innerHTML="";
+async function searchAndRender(rawQuery) {
+  const q0 = rawQuery.trim();
+  if (!q0) {
+    document.getElementById("results").innerHTML = "";
     return;
   }
 
-  const query = q;
-  let qEmbed = null;
+  const query = normalizeQuery(q0);
 
-  if(model && resumeEmbeddings){
+  // If model isn’t available, do keyword-only (still works on mobile/offline-ish).
+  let qEmbed = null;
+  if (model && resumeEmbeddings) {
     qEmbed = await embedQuery(query);
   }
 
-  const scored = resumeDB.map((r,i)=>{
+  const isSymbolSkillQuery = /\bc\+\+\b|\bc#\b|\.net/i.test(q0);
+  const wKeyword = (isSymbolSkillQuery || tokenize(query).length <= 2) ? 0.65 : 0.30;
+  const wSemantic = 1 - wKeyword;
+
+  const scored = [];
+  for (let i = 0; i < resumeDB.length; i++) {
+    const r = resumeDB[i];
     const kw = keywordBoostScore(query, r.resumeText);
+
     let sem = 0;
-    if(qEmbed && resumeEmbeddings){
+    if (qEmbed && resumeEmbeddings) {
       sem = cosineSimilarity(qEmbed, resumeEmbeddings[i]);
     }
-    const score = 0.6*sem + 0.4*kw;
-    return {...r, kw, sem, score};
-  });
 
-  scored.sort((a,b)=> b.score - a.score);
+    const score = (wSemantic * sem) + (wKeyword * kw);
+    scored.push({ ...r, sem, kw, score });
+  }
+
+  scored.sort((a, b) => b.score - a.score);
   renderCards(scored, query);
 }
 
-async function init(){
+async function init() {
   resumeDB = loadResumes();
 
   const searchBox = document.getElementById("searchBox");
   const clearBtn = document.getElementById("clearBtn");
 
+  // Mobile UX: always keep input responsive and prevent “it looks frozen”
+  setStatus("Loading AI model… (first time may take a bit on mobile)", "loading");
+
   try {
     model = await use.load();
-    const texts = resumeDB.map(r=>r.resumeText);
+    setStatus("Indexing resumes…", "loading");
+
+    const texts = resumeDB.map(r => r.resumeText);
     const emb = await model.embed(texts);
     resumeEmbeddings = await emb.array();
     emb.dispose();
-  } catch(e){
-    console.log("Model load failed, fallback:", e);
+
+    setStatus("Ready ✅  Try: C++ embedded linux", "ok");
+  } catch (e) {
+    console.error(e);
+    setStatus("AI model couldn’t load here. Using keyword ranking fallback ✅", "warn");
     model = null;
+    resumeEmbeddings = null;
   }
 
+  // Enable search
   searchBox.disabled = false;
-  searchBox.addEventListener("input", ()=> searchAndRender(searchBox.value));
-  clearBtn.addEventListener("click", ()=>{
-    searchBox.value="";
-    document.getElementById("results").innerHTML="";
+
+  // High-quality mobile behavior:
+  // - debounce heavy work
+  // - keep keyboard open if user wants
+  // - use “search” key via enter
+  const doSearch = debounce(() => searchAndRender(searchBox.value), 250);
+  searchBox.addEventListener("input", doSearch);
+  searchBox.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      searchAndRender(searchBox.value);
+      searchBox.blur(); // optional: close keyboard after search
+    }
   });
 
-  document.querySelectorAll(".pill").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
+  clearBtn.addEventListener("click", () => {
+    searchBox.value = "";
+    document.getElementById("results").innerHTML = "";
+    searchBox.focus();
+  });
+
+  // Chips
+  document.querySelectorAll(".pill").forEach(btn => {
+    btn.addEventListener("click", () => {
       searchBox.value = btn.dataset.q;
       searchAndRender(searchBox.value);
+      // keep focus so user can tweak query
+      searchBox.focus({ preventScroll: true });
     });
   });
 
+  // Start with an example query (nice for demos)
   searchBox.value = "C++ embedded linux";
   searchAndRender(searchBox.value);
+
+  // Mobile nicety: avoid sticky header covering content on focus
+  searchBox.addEventListener("focus", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 }
 
 init();
 </script>
+
 </body>
 </html>
