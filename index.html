@@ -2,13 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>AI Resume Search (Syntronic Edition)</title>
 
 <!-- TFJS -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+
 <!-- USE -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder@1.3.3/dist/universal-sentence-encoder.min.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
   :root{
@@ -27,23 +31,20 @@
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto;
     background: var(--bg);
     color: var(--text);
     padding: 20px;
   }
 
-  .app {
-    max-width: 1250px;
-    margin: 0 auto;
-  }
+  .app { max-width: 1300px; margin: auto; }
 
-  /* Logo + Title Layout */
+  /* Header */
   header {
     background: var(--panel);
-    border: 1px solid var(--border);
+    padding: 18px;
     border-radius: var(--radius);
-    padding: 16px;
+    border: 1px solid var(--border);
     box-shadow: var(--shadow);
   }
 
@@ -54,39 +55,35 @@
   }
 
   .logo {
-    height: 45px;
+    height: 50px;
   }
 
   h1 { margin: 0; font-size: 24px; }
-  .sub { margin: 5px 0 12px; color: var(--muted); }
+  .sub { margin: 4px 0 12px; color: var(--muted); font-size: 14px; }
 
-  /* Search Row */
   .searchRow {
     display: grid;
     grid-template-columns: 1fr auto auto;
     gap: 10px;
-    margin-top: 10px;
   }
 
   input[type="text"]{
-    width: 100%;
     padding: 13px;
-    font-size: 16px;
-    border-radius: 12px;
     border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 16px;
   }
 
-  button{
+  button {
+    padding: 13px 20px;
+    font-size: 15px;
+    border-radius: 12px;
     border: 1px solid var(--border);
     background: #fafafa;
-    padding: 13px 20px;
-    border-radius: 12px;
     cursor: pointer;
-    font-size: 15px;
     font-weight: 600;
   }
 
-  /* Pills */
   .chips {
     margin-top: 12px;
     display: flex;
@@ -94,15 +91,15 @@
     overflow-x: auto;
   }
 
-  .pill {
-    border: 1px solid var(--chipBorder);
-    background: var(--chip);
+  .pill{
     padding: 8px 12px;
+    background: var(--chip);
+    border: 1px solid var(--chipBorder);
     border-radius: 999px;
     white-space: nowrap;
   }
 
-  /* Two-column layout */
+  /* Layout */
   .layout {
     display: grid;
     grid-template-columns: 3fr 1.2fr;
@@ -111,7 +108,7 @@
   }
 
   /* Results */
-  .results {
+  .results{
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
@@ -125,22 +122,17 @@
     box-shadow: var(--shadow);
   }
 
-  .cardTop {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 6px;
-  }
+  .cardTop{ display: flex; justify-content: space-between; }
 
   .badge {
     background: #e9f4ff;
+    border: 1px solid #bcdcff;
     padding: 6px 12px;
     border-radius: 999px;
-    border: 1px solid #bcdcff;
     font-size: 13px;
     font-weight: bold;
   }
 
-  /* Dashboard panel */
   .dashboardBox {
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -150,64 +142,54 @@
     height: fit-content;
   }
 
-  #skillChart {
-    width: 100%;
-    height: 200px;
-  }
-
-  mark {
-    background: #fff3b0;
-  }
+  mark { background: #fff3b0; }
 </style>
 </head>
 
 <body>
 <div class="app">
 
-  <!-- HEADER WITH LOGO -->
-  <header>
-    <div class="header-flex">
-      <img src="syntronic%20logo.png" class="logo" alt="Syntronic Logo">
-      
-      <div>
-        <h1>AI Resume Search</h1>
-        <p class="sub">Semantic + keyword boosting + Bench Skill Dashboard included.</p>
-      </div>
-    </div>
+<header>
+  <div class="header-flex">
+    <img src="https://raw.githubusercontent.com/pallavisinha113-alt/ai-resume-search/main/Syntronic%20logo.png"
+         class="logo" alt="Syntronic Logo">
 
-    <!-- SEARCH + BUTTONS -->
-    <div class="searchRow">
-      <input id="searchBox" type="text" placeholder="Search: Java Spring Boot Microservices..." />
-      <button id="searchBtn">Search</button>
-      <button id="clearBtn">Clear</button>
-    </div>
-
-    <!-- QUICK FILTERS -->
-    <div class="chips">
-      <button class="pill" data-q="Java Microservices">Java Microservices</button>
-      <button class="pill" data-q="C++ Embedded">C++ Embedded</button>
-      <button class="pill" data-q="C Developer">C Developer</button>
-      <button class="pill" data-q="Python ML">Python ML</button>
-    </div>
-  </header>
-
-  <!-- MAIN LAYOUT: RESULTS LEFT + DASHBOARD RIGHT -->
-  <div class="layout">
-    
-    <!-- RESULTS -->
     <div>
-      <h3>Results</h3>
-      <div id="results" class="results"></div>
+      <h1>AI Resume Search</h1>
+      <p class="sub">Semantic Search • Skill Boosting • Bench Skill Dashboard</p>
     </div>
-
-    <!-- BENCH SKILL DASHBOARD -->
-    <div class="dashboardBox">
-      <h3>Bench Skill Dashboard</h3>
-      <p style="font-size:13px;">Frequency of skills in current results.</p>
-      <canvas id="skillChart"></canvas>
-    </div>
-
   </div>
+
+  <div class="searchRow">
+    <input id="searchBox" type="text" placeholder="Search: Java Spring Boot, C++ Embedded…" />
+    <button id="searchBtn">Search</button>
+    <button id="clearBtn">Clear</button>
+  </div>
+
+  <div class="chips">
+    <button class="pill" data-q="Java Microservices">Java Microservices</button>
+    <button class="pill" data-q="C++ Embedded Linux">C++ Embedded Linux</button>
+    <button class="pill" data-q="C Developer Firmware">C Firmware Developer</button>
+    <button class="pill" data-q="Python Machine Learning">Python ML</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Results -->
+  <div>
+    <h3>Results</h3>
+    <div id="results" class="results"></div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="dashboardBox">
+    <h3>Bench Skill Dashboard</h3>
+    <p style="font-size:13px;">Shows most common skills in current result set.</p>
+    <canvas id="skillChart"></canvas>
+  </div>
+
+</div>
 
 </div>
 
@@ -216,23 +198,37 @@ let model = null;
 let resumeDB = [];
 let resumeEmbeddings = null;
 
-const seedResumes = [
-  { name:"Sophia Rodriguez", resumeText:"Java Backend Developer. Skills: Java, Spring Boot, Microservices.", availability:"20 hrs/week" },
-  { name:"Anita Joseph", resumeText:"Java Developer. Skills: Spring Boot, Microservices, Hibernate.", availability:"Full-time" },
-  { name:"Priya Shah", resumeText:"Java Microservices Engineer. Skills: Java, Spring, Cloud.", availability:"30 hrs/week" },
-  { name:"Sonia Varma", resumeText:"Full Stack Java Developer. Skills: Java, React, SQL, Microservices.", availability:"15 hrs/week" },
-  { name:"Ravi Kumar", resumeText:"Java Developer. Skills: Java 11, Spring, REST APIs.", availability:"Full-time now" },
+/* ---------------------- RESUME DATABASE (20 RESUMES) ---------------------- */
 
-  { name:"Arjun Mehta", resumeText:"Senior C++ + Embedded Engineer. Skills: C++, Embedded Linux, RTOS.", availability:"40 hrs/week" },
-  { name:"Mira Patel", resumeText:"Embedded Engineer. Skills: C, C++, FreeRTOS, BLE.", availability:"10 hrs/week" },
+resumeDB = [
+  { name:"Sophia Rodriguez", resumeText:"Java Backend Developer. Skills: Java, Spring Boot, Microservices, Docker.", availability:"20 hrs/week" },
+  { name:"Priya Shah", resumeText:"Java Engineer. Skills: Java, Spring Cloud, Microservices, REST APIs.", availability:"Full-time" },
+  { name:"Aditi Menon", resumeText:"Java Developer. Skills: Java, Hibernate, Spring Boot, SQL.", availability:"30 hrs/week" },
+  { name:"Anita Joseph", resumeText:"Full Stack Java Developer. Skills: Java, React, Microservices.", availability:"15 hrs/week" },
 
-  { name:"Rahul Nair", resumeText:"C Developer. Skills: C, Drivers, Firmware, UART, SPI.", availability:"15 hrs/week" },
-  { name:"John Lewis", resumeText:"C Developer. Skills: C, RTOS, Baremetal, I2C, SPI.", availability:"25 hrs/week" },
+  { name:"Ravi Kumar", resumeText:"C Developer. Skills: C, Memory Management, Pointers, Systems Programming.", availability:"Full-time" },
+  { name:"John Lewis", resumeText:"Firmware Developer. Skills: C, RTOS, Drivers, SPI, UART.", availability:"25 hrs/week" },
+  { name:"Rahul Nair", resumeText:"Embedded C Developer. Skills: C, FreeRTOS, I2C, UART.", availability:"10 hrs/week" },
 
-  { name:"Ethan Williams", resumeText:"5G Telecom Engineer. Skills: 5G, LTE, RF Systems.", availability:"30 hrs/week" }
+  { name:"Arjun Mehta", resumeText:"Senior C++ Developer. Skills: C++, Embedded Linux, RTOS, CAN Bus.", availability:"40 hrs/week" },
+  { name:"Mira Patel", resumeText:"Embedded Engineer. Skills: C++, STM32, BLE, FreeRTOS.", availability:"10 hrs/week" },
+  { name:"Vikram Joshi", resumeText:"C++ Developer. Skills: C++, STL, Linux, Boost.", availability:"35 hrs/week" },
+  { name:"Suresh Iyer", resumeText:"C++ Real-time Engineer. Skills: C++, Threads, IPC.", availability:"20 hrs/week" },
+
+  { name:"Daniel Chen", resumeText:"Python + ML Engineer. Skills: Python, TensorFlow, Pandas.", availability:"Full-time" },
+  { name:"Lisa Wong", resumeText:"Python Backend Developer. Skills: Python, Flask, SQL.", availability:"15 hrs/week" },
+  { name:"Akash Singh", resumeText:"Data Scientist. Skills: Python, ML, Scikit-learn.", availability:"30 hrs/week" },
+
+  { name:"Ethan Williams", resumeText:"5G Telecom Engineer. Skills: 5G NR, LTE, RF Systems.", availability:"30 hrs/week" },
+  { name:"Hiro Tanaka", resumeText:"Telecom Developer. Skills: LTE, IMS, VoLTE, Protocol Stack.", availability:"20 hrs/week" },
+  { name:"Sara Levin", resumeText:"RF Engineer. Skills: RF Design, LTE, 5G Testing.", availability:"Full-time" },
+
+  { name:"Kevin Brooks", resumeText:"Automation Engineer. Skills: Python, Selenium.", availability:"20 hrs/week" },
+  { name:"Mark Evans", resumeText:"QA Engineer. Skills: Java, Selenium, Test Automation.", availability:"Full-time" },
+  { name:"Liam Carter", resumeText:"Software Engineer. Skills: C++, Java, Cloud.", availability:"25 hrs/week" }
 ];
 
-// ------------------ UTILS ------------------
+/* ---------------------- UTILS ---------------------- */
 
 function tokenize(q){ return q.toLowerCase().split(/\s+/).filter(Boolean); }
 
@@ -246,9 +242,7 @@ function keywordBoostScore(query, text){
 
 function cosineSimilarity(a,b){
   let dot=0,na=0,nb=0;
-  for(let i=0;i<a.length;i++){
-    dot+=a[i]*b[i]; na+=a[i]*a[i]; nb+=b[i]*b[i];
-  }
+  for(let i=0;i<a.length;i++){ dot+=a[i]*b[i]; na+=a[i]*a[i]; nb+=b[i]*b[i]; }
   return dot/(Math.sqrt(na)*Math.sqrt(nb));
 }
 
@@ -261,7 +255,8 @@ function highlight(text,q){
   return out;
 }
 
-// -------------- RENDER RESULTS --------------
+/* ---------------------- RENDER RESULTS ---------------------- */
+
 function renderResults(list, query){
   const results = document.getElementById("results");
   results.innerHTML = "";
@@ -275,7 +270,9 @@ function renderResults(list, query){
         <strong>${c.name}</strong>
         <span class="badge">${(c.score*100).toFixed(1)}%</span>
       </div>
+
       <div>${highlight(c.resumeText, query)}</div>
+
       <div style="margin-top:6px;font-size:13px;">
         <strong>Availability:</strong> ${c.availability}<br>
         Semantic: ${(c.sem*100).toFixed(1)}% • Skill: ${(c.kw*100).toFixed(1)}%
@@ -286,33 +283,31 @@ function renderResults(list, query){
   });
 }
 
-// ----------------- SKILL DASHBOARD -----------------
+/* ---------------------- SKILL DASHBOARD ---------------------- */
+
 let chart = null;
 
 function updateSkillChart(list){
   const skillCounts = {};
 
   list.forEach(r=>{
-    const words = tokenize(r.resumeText);
-    words.forEach(w=>{
-      if(!skillCounts[w]) skillCounts[w]=0;
-      skillCounts[w]++;
+    tokenize(r.resumeText).forEach(word=>{
+      if(!skillCounts[word]) skillCounts[word]=0;
+      skillCounts[word]++;
     });
   });
 
   const labels = Object.keys(skillCounts).slice(0,6);
-  const data = labels.map(l=>skillCounts[l]);
-
-  const ctx = document.getElementById("skillChart");
+  const data = labels.map(k=>skillCounts[k]);
 
   if(chart) chart.destroy();
 
-  chart = new Chart(ctx,{
+  chart = new Chart(document.getElementById("skillChart"),{
     type:"bar",
     data:{
       labels: labels,
       datasets:[{
-        label:"Count",
+        label:"Skill Frequency",
         data:data,
         backgroundColor:"rgba(0,123,255,0.6)"
       }]
@@ -321,8 +316,9 @@ function updateSkillChart(list){
   });
 }
 
-// ---------------- SEARCH -----------------
-async function search(query){
+/* ---------------------- SEARCH ---------------------- */
+
+async function performSearch(query){
   if(!query){
     document.getElementById("results").innerHTML="";
     return;
@@ -330,14 +326,16 @@ async function search(query){
 
   let qEmbed = null;
   if(model && resumeEmbeddings){
-    qEmbed = await model.embed([query]).then(t=>{ let a=t.arraySync()[0]; t.dispose(); return a; });
+    const t = await model.embed([query]);
+    qEmbed = t.arraySync()[0];
+    t.dispose();
   }
 
   const scored = resumeDB.map((r,i)=>{
     const kw = keywordBoostScore(query, r.resumeText);
     let sem = 0;
-    if(qEmbed) sem = cosineSimilarity(qEmbed, resumeEmbeddings[i]);
-    return { ...r, kw, sem, score:0.6*sem + 0.4*kw };
+    if(qEmbed) sem = cosineSimilarity(qEmbed,resumeEmbeddings[i]);
+    return {...r, kw, sem, score:(0.6*sem + 0.4*kw)};
   });
 
   scored.sort((a,b)=>b.score-a.score);
@@ -346,21 +344,20 @@ async function search(query){
   updateSkillChart(scored);
 }
 
-// ---------------- INIT -----------------
-async function init(){
-  resumeDB = seedResumes;
+/* ---------------------- INIT ---------------------- */
 
+async function init(){
   try{
     model = await use.load();
-    const emb = await model.embed(resumeDB.map(r=>r.resumeText));
-    resumeEmbeddings = emb.arraySync();
-    emb.dispose();
-  }catch(err){
-    console.log("Model load failed, fallback mode.", err);
+    const t = await model.embed(resumeDB.map(r=>r.resumeText));
+    resumeEmbeddings = t.arraySync();
+    t.dispose();
+  } catch(e){
+    console.log("Model load failed. Using keyword-only mode.");
   }
 
   document.getElementById("searchBtn").onclick = ()=>{
-    search(document.getElementById("searchBox").value);
+    performSearch(document.getElementById("searchBox").value);
   };
 
   document.getElementById("clearBtn").onclick = ()=>{
@@ -369,18 +366,15 @@ async function init(){
   };
 
   document.querySelectorAll(".pill").forEach(b=>{
-    b.onclick = ()=>{ 
+    b.onclick = ()=>{
       document.getElementById("searchBox").value=b.dataset.q;
-      search(b.dataset.q);
+      performSearch(b.dataset.q);
     };
   });
 }
 
 init();
 </script>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>
 </html>
